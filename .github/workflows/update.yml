@@ -18,10 +18,11 @@ jobs:
         run: |
           curl -s "http://www.bom.gov.au/fwo/IDV60901/IDV60901.94802.json" > raw.json
 
-      - name: Extract station
-        run: |
-          mkdir -p data
-          jq '.observations.data[] | select(.wmo==94802)' raw.json > data/latest.json
+- name: Extract station
+  run: |
+    mkdir -p data
+    jq '.observations.data[] | select(.wmo==94857)' raw.json > data/latest.json || echo "{}" > data/latest.json
+``
 
       - name: Update history
         run: |

@@ -1,9 +1,9 @@
 name: BOM Weather
 
 on:
+  push:
   schedule:
     - cron: "*/10 * * * *"
-  push:
 
 jobs:
   update:
@@ -13,27 +13,34 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
           persist-credentials: true
 
       - name: Fetch data
         run: curl -s "http://www.bom.gov.au/fwo/IDV60901/IDV60901.94857.json" > raw.json
 
-      - name: Extract station
+      # DEBUG STEP (important)
+      - name: Show raw data snippet
+        run: head -n 20 raw.json
+
+      - name: Extract Geelong Racecourse
         run: |
           mkdir -p data
-          jq '.observations.data[] | select(.wmo==94857)' raw.json > data/latest.json || echo "{}" > data/latest.json
+          jq '.observations.data[] | select(.wmo==94857)' raw.json > data/latest.json
+
+      # DEBUG: show what we extracted
+      - name: Show extracted data
+        run: cat data/latest.json
 
       - name: Update history
         run: |
-          if [ -s data/latest.json ]; then
-            if [ -f data/history.json ]; then
-              jq -s '.[0] + [.[1]]' data/history.json data/latest.json > tmp.json || cp data/history.json tmp.json
-              mv tmp.json data/history.json
-            else
-              jq -s '[.[0]]' data/latest.json > data/history.json
-            fi
+          if [ -f data/history.json ]; then
+            jq -s '.[0] + [.[1]]' data/history.json data/latest.json > tmp.json
+            mv tmp.json data/history.json
+          else
+            jq -s '[.[0]]' data/latest.json > data/history.json
           fi
 
       - name: Commit changes
@@ -43,3 +50,4 @@ jobs:
           git add data/*.json
           git commit -m "update weather" || echo "no changes"
           git push
+``
